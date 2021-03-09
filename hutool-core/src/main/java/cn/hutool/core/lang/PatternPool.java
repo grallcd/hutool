@@ -5,7 +5,7 @@ import cn.hutool.core.util.ReUtil;
 import java.util.regex.Pattern;
 
 /**
- * 常用正则表达式集合
+ * 常用正则表达式集合，更多正则见:https://any86.github.io/any-rule/
  *
  * @author Looly
  */
@@ -57,13 +57,18 @@ public class PatternPool {
 	 */
 	public final static Pattern MOBILE = Pattern.compile("(?:0|86|\\+86)?1[3-9]\\d{9}");
 	/**
+	 * 座机号码
+	 */
+	public final static Pattern TEL = Pattern.compile("0\\d{2,3}-[1-9]\\d{6,7}");
+	/**
 	 * 18位身份证号码
 	 */
 	public final static Pattern CITIZEN_ID = Pattern.compile("[1-9]\\d{5}[1-2]\\d{3}((0\\d)|(1[0-2]))(([012]\\d)|3[0-1])\\d{3}(\\d|X|x)");
+
 	/**
-	 * 邮编
+	 * 邮编，兼容港澳台
 	 */
-	public final static Pattern ZIP_CODE = Pattern.compile("[1-9]\\d{5}(?!\\d)");
+	public final static Pattern ZIP_CODE = Pattern.compile("^(0[1-7]|1[0-356]|2[0-7]|3[0-6]|4[0-7]|5[0-7]|6[0-7]|7[0-5]|8[0-9]|9[0-8])\\d{4}|99907[78]$");
 	/**
 	 * 生日
 	 */

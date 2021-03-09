@@ -135,6 +135,46 @@ public class CalendarUtil {
 	}
 
 	/**
+	 * 获取某小时的开始时间
+	 *
+	 * @param calendar 日期 {@link Calendar}
+	 * @return {@link Calendar}
+	 */
+	public static Calendar beginOfHour(Calendar calendar) {
+		return truncate(calendar, DateField.HOUR_OF_DAY);
+	}
+
+	/**
+	 * 获取某小时的结束时间
+	 *
+	 * @param calendar 日期 {@link Calendar}
+	 * @return {@link Calendar}
+	 */
+	public static Calendar endOfHour(Calendar calendar) {
+		return ceiling(calendar, DateField.HOUR_OF_DAY);
+	}
+
+	/**
+	 * 获取某分钟的开始时间
+	 *
+	 * @param calendar 日期 {@link Calendar}
+	 * @return {@link Calendar}
+	 */
+	public static Calendar beginOfMinute(Calendar calendar) {
+		return truncate(calendar, DateField.MINUTE);
+	}
+
+	/**
+	 * 获取某分钟的结束时间
+	 *
+	 * @param calendar 日期 {@link Calendar}
+	 * @return {@link Calendar}
+	 */
+	public static Calendar endOfMinute(Calendar calendar) {
+		return ceiling(calendar, DateField.MINUTE);
+	}
+
+	/**
 	 * 获取某天的开始时间
 	 *
 	 * @param calendar 日期 {@link Calendar}
@@ -290,12 +330,28 @@ public class CalendarUtil {
 	}
 
 	/**
+	 * 比较两个日期是否为同一月
+	 *
+	 * @param cal1 日期1
+	 * @param cal2 日期2
+	 * @return 是否为同一月
+	 * @since 5.4.1
+	 */
+	public static boolean isSameMonth(Calendar cal1, Calendar cal2) {
+		if (cal1 == null || cal2 == null) {
+			throw new IllegalArgumentException("The date must not be null");
+		}
+		return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) && //
+				cal1.get(Calendar.MONTH) == cal2.get(Calendar.MONTH);
+	}
+
+	/**
 	 * <p>检查两个Calendar时间戳是否相同。</p>
 	 *
 	 * <p>此方法检查两个Calendar的毫秒数时间戳是否相同。</p>
 	 *
-	 * @param date1  时间1
-	 * @param date2  时间2
+	 * @param date1 时间1
+	 * @param date2 时间2
 	 * @return 两个Calendar时间戳是否相同。如果两个时间都为{@code null}返回true，否则有{@code null}返回false
 	 * @since 5.3.11
 	 */
@@ -350,6 +406,19 @@ public class CalendarUtil {
 	 * @param dateField {@link DateField}
 	 * @return 字段最小值
 	 * @see Calendar#getActualMinimum(int)
+	 * @since 5.4.2
+	 */
+	public static int getBeginValue(Calendar calendar, DateField dateField) {
+		return getBeginValue(calendar, dateField.getValue());
+	}
+
+	/**
+	 * 获取指定日期字段的最小值，例如分钟的最小值是0
+	 *
+	 * @param calendar  {@link Calendar}
+	 * @param dateField {@link DateField}
+	 * @return 字段最小值
+	 * @see Calendar#getActualMinimum(int)
 	 * @since 4.5.7
 	 */
 	public static int getBeginValue(Calendar calendar, int dateField) {
@@ -357,6 +426,19 @@ public class CalendarUtil {
 			return calendar.getFirstDayOfWeek();
 		}
 		return calendar.getActualMinimum(dateField);
+	}
+
+	/**
+	 * 获取指定日期字段的最大值，例如分钟的最大值是59
+	 *
+	 * @param calendar  {@link Calendar}
+	 * @param dateField {@link DateField}
+	 * @return 字段最大值
+	 * @see Calendar#getActualMaximum(int)
+	 * @since 5.4.2
+	 */
+	public static int getEndValue(Calendar calendar, DateField dateField) {
+		return getEndValue(calendar, dateField.getValue());
 	}
 
 	/**

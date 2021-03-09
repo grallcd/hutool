@@ -13,6 +13,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
+import java.time.temporal.UnsupportedTemporalTypeException;
 
 /**
  * {@link TemporalAccessor} 工具类封装
@@ -20,7 +21,7 @@ import java.time.temporal.TemporalField;
  * @author looly
  * @since 5.3.9
  */
-public class TemporalAccessorUtil {
+public class TemporalAccessorUtil extends TemporalUtil{
 
 	/**
 	 * 安全获取时间的某个属性，属性不存在返回0
@@ -54,7 +55,19 @@ public class TemporalAccessorUtil {
 			formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 		}
 
-		return formatter.format(time);
+
+		try {
+			return formatter.format(time);
+		} catch (UnsupportedTemporalTypeException e){
+			if(time instanceof LocalDate && e.getMessage().contains("HourOfDay")){
+				// 用户传入LocalDate，但是要求格式化带有时间部分，转换为LocalDateTime重试
+				return formatter.format(((LocalDate) time).atStartOfDay());
+			}else if(time instanceof LocalTime && e.getMessage().contains("YearOfEra")){
+				// 用户传入LocalTime，但是要求格式化带有日期部分，转换为LocalDateTime重试
+				return formatter.format(((LocalTime) time).atDate(LocalDate.now()));
+			}
+			throw e;
+		}
 	}
 
 	/**
@@ -74,6 +87,17 @@ public class TemporalAccessorUtil {
 				? null : DateTimeFormatter.ofPattern(format);
 
 		return format(time, formatter);
+	}
+
+	/**
+	 * {@link TemporalAccessor}转换为 时间戳（从1970-01-01T00:00:00Z开始的毫秒数）
+	 *
+	 * @param temporalAccessor Date对象
+	 * @return {@link Instant}对象
+	 * @since 5.4.1
+	 */
+	public static long toEpochMilli(TemporalAccessor temporalAccessor) {
+		return toInstant(temporalAccessor).toEpochMilli();
 	}
 
 	/**

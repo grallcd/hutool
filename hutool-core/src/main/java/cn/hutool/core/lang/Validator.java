@@ -7,6 +7,7 @@ import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.IdcardUtil;
 
 import java.net.MalformedURLException;
 import java.util.regex.Matcher;
@@ -51,10 +52,12 @@ public class Validator {
 	 * 移动电话
 	 */
 	public final static Pattern MOBILE = PatternPool.MOBILE;
+
 	/**
 	 * 身份证号码
 	 */
 	public final static Pattern CITIZEN_ID = PatternPool.CITIZEN_ID;
+
 	/**
 	 * 邮编
 	 */
@@ -89,7 +92,7 @@ public class Validator {
 	public final static Pattern PLATE_NUMBER = PatternPool.PLATE_NUMBER;
 
 	/**
-	 * 给定值是否为<code>true</code>
+	 * 给定值是否为{@code true}
 	 *
 	 * @param value 值
 	 * @return 是否为<code>true</code>
@@ -100,7 +103,7 @@ public class Validator {
 	}
 
 	/**
-	 * 给定值是否不为<code>false</code>
+	 * 给定值是否不为{@code false}
 	 *
 	 * @param value 值
 	 * @return 是否不为<code>false</code>
@@ -111,7 +114,7 @@ public class Validator {
 	}
 
 	/**
-	 * 检查指定值是否为<code>true</code>
+	 * 检查指定值是否为{@code true}
 	 *
 	 * @param value            值
 	 * @param errorMsgTemplate 错误消息内容模板（变量使用{}表示）
@@ -128,7 +131,7 @@ public class Validator {
 	}
 
 	/**
-	 * 检查指定值是否为<code>false</code>
+	 * 检查指定值是否为{@code false}
 	 *
 	 * @param value            值
 	 * @param errorMsgTemplate 错误消息内容模板（变量使用{}表示）
@@ -145,7 +148,7 @@ public class Validator {
 	}
 
 	/**
-	 * 给定值是否为<code>null</code>
+	 * 给定值是否为{@code null}
 	 *
 	 * @param value 值
 	 * @return 是否为<code>null</code>
@@ -155,7 +158,7 @@ public class Validator {
 	}
 
 	/**
-	 * 给定值是否不为<code>null</code>
+	 * 给定值是否不为{@code null}
 	 *
 	 * @param value 值
 	 * @return 是否不为<code>null</code>
@@ -165,7 +168,7 @@ public class Validator {
 	}
 
 	/**
-	 * 检查指定值是否为<code>null</code>
+	 * 检查指定值是否为{@code null}
 	 *
 	 * @param <T>              被检查的对象类型
 	 * @param value            值
@@ -183,7 +186,7 @@ public class Validator {
 	}
 
 	/**
-	 * 检查指定值是否非<code>null</code>
+	 * 检查指定值是否非{@code null}
 	 *
 	 * @param <T>              被检查的对象类型
 	 * @param value            值
@@ -724,19 +727,17 @@ public class Validator {
 	}
 
 	/**
-	 * 验证是否为身份证号码（18位中国）<br>
-	 * 出生日期只支持到到2999年
+	 * 验证是否为身份证号码（支持18位、15位和港澳台的10位）
 	 *
-	 * @param value 值
-	 * @return 是否为身份证号码（18位中国）
+	 * @param value 身份证号，支持18位、15位和港澳台的10位
+	 * @return 是否为有效身份证号码
 	 */
 	public static boolean isCitizenId(CharSequence value) {
-		return isMatchRegex(CITIZEN_ID, value);
+		return IdcardUtil.isValidCard(String.valueOf(value));
 	}
 
 	/**
-	 * 验证是否为身份证号码（18位中国）<br>
-	 * 出生日期只支持到到2999年
+	 * 验证是否为身份证号码（支持18位、15位和港澳台的10位）
 	 *
 	 * @param <T>      字符串类型
 	 * @param value    值

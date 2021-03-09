@@ -10,6 +10,7 @@ import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 import java.io.Closeable;
@@ -144,7 +145,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	}
 
 	/**
-	 * 获取指定坐标单元格，单元格不存在时返回<code>null</code>
+	 * 获取指定坐标单元格，单元格不存在时返回{@code null}
 	 *
 	 * @param locationRef 单元格地址标识符，例如A11，B5
 	 * @return {@link Cell}
@@ -156,7 +157,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	}
 
 	/**
-	 * 获取指定坐标单元格，单元格不存在时返回<code>null</code>
+	 * 获取指定坐标单元格，单元格不存在时返回{@code null}
 	 *
 	 * @param x X坐标，从0计数，即列号
 	 * @param y Y坐标，从0计数，即行号
@@ -192,7 +193,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	}
 
 	/**
-	 * 获取指定坐标单元格，如果isCreateIfNotExist为false，则在单元格不存在时返回<code>null</code>
+	 * 获取指定坐标单元格，如果isCreateIfNotExist为false，则在单元格不存在时返回{@code null}
 	 *
 	 * @param locationRef        单元格地址标识符，例如A11，B5
 	 * @param isCreateIfNotExist 单元格不存在时是否创建
@@ -205,7 +206,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	}
 
 	/**
-	 * 获取指定坐标单元格，如果isCreateIfNotExist为false，则在单元格不存在时返回<code>null</code>
+	 * 获取指定坐标单元格，如果isCreateIfNotExist为false，则在单元格不存在时返回{@code null}
 	 *
 	 * @param x                  X坐标，从0计数，即列号
 	 * @param y                  Y坐标，从0计数，即行号
@@ -323,7 +324,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	}
 
 	/**
-	 * 获取或创建某一行的样式，返回样式后可以设置样式内容<br>
+	 * 获取或创建某一列的样式，返回样式后可以设置样式内容<br>
 	 * 需要注意，此方法返回行样式，设置背景色在单元格设置值后会被覆盖，需要单独设置其单元格的样式。
 	 *
 	 * @param x X坐标，从0计数，即列号
@@ -336,7 +337,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	}
 
 	/**
-	 * 创建某一行的样式，返回样式后可以设置样式内容
+	 * 创建某一列的样式，返回样式后可以设置样式内容
 	 *
 	 * @param x X坐标，从0计数，即列号
 	 * @return {@link CellStyle}
@@ -415,7 +416,7 @@ public class ExcelBase<T extends ExcelBase<T>> implements Closeable {
 	 * @since 4.6.2
 	 */
 	public boolean isXlsx() {
-		return this.sheet instanceof XSSFSheet;
+		return this.sheet instanceof XSSFSheet || this.sheet instanceof SXSSFSheet;
 	}
 
 	/**
