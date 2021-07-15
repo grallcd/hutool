@@ -78,6 +78,17 @@ public class FileUtil extends PathUtil {
 	 * 当Path为文件形式时, path会加入一个表示文件的前缀
 	 */
 	public static final String PATH_FILE_PRE = URLUtil.FILE_URL_PREFIX;
+	/**
+	 * 文件路径分隔符<br>
+	 * 在Unix和Linux下 是{@code '/'}; 在Windows下是 {@code '\'}
+	 */
+	public static final String FILE_SEPARATOR = File.separator;
+	/**
+	 * 多个PATH之间的分隔符<br>
+	 * 在Unix和Linux下 是{@code ':'}; 在Windows下是 {@code ';'}
+	 */
+	public static final String PATH_SEPARATOR = File.pathSeparator;
+
 
 	/**
 	 * 是否为Windows环境
@@ -116,7 +127,7 @@ public class FileUtil extends PathUtil {
 	 * @return 是否为空，当提供非目录时，返回false
 	 */
 	public static boolean isEmpty(File file) {
-		if (null == file) {
+		if (null == file || false == file.exists()) {
 			return true;
 		}
 
@@ -1372,7 +1383,7 @@ public class FileUtil extends PathUtil {
 	 * <ol>
 	 * <li>1. 统一用 /</li>
 	 * <li>2. 多个 / 转换为一个 /</li>
-	 * <li>3. 去除两边空格</li>
+	 * <li>3. 去除左边空格</li>
 	 * <li>4. .. 和 . 转换为绝对路径，当..多于已有路径时，直接返回根路径</li>
 	 * </ol>
 	 * <p>
@@ -1393,7 +1404,7 @@ public class FileUtil extends PathUtil {
 	 * "C:\\foo\\..\\bar" =》 "C:/bar"
 	 * "C:\\..\\bar" =》 "C:/bar"
 	 * "~/foo/../bar/" =》 "~/bar/"
-	 * "~/../bar" =》 "bar"
+	 * "~/../bar" =》 普通用户运行是'bar的home目录'，ROOT用户运行是'/bar'
 	 * </pre>
 	 *
 	 * @param path 原路径
@@ -1404,25 +1415,26 @@ public class FileUtil extends PathUtil {
 			return null;
 		}
 
-
 		// 兼容Spring风格的ClassPath路径，去除前缀，不区分大小写
 		String pathToUse = StrUtil.removePrefixIgnoreCase(path, URLUtil.CLASSPATH_URL_PREFIX);
 		// 去除file:前缀
 		pathToUse = StrUtil.removePrefixIgnoreCase(pathToUse, URLUtil.FILE_URL_PREFIX);
 
 		// 识别home目录形式，并转换为绝对路径
-		if (pathToUse.startsWith("~")) {
-			pathToUse = pathToUse.replace("~", getUserHomePath());
+		if (StrUtil.startWith(pathToUse, '~')) {
+			pathToUse = getUserHomePath() + pathToUse.substring(1);
 		}
 
 		// 统一使用斜杠
-		pathToUse = pathToUse.replaceAll("[/\\\\]+", StrUtil.SLASH).trim();
+		pathToUse = pathToUse.replaceAll("[/\\\\]+", StrUtil.SLASH);
+		// 去除开头空白符，末尾空白符合法，不去除
+		pathToUse = StrUtil.trimStart(pathToUse);
 		//兼容Windows下的共享目录路径（原始路径如果以\\开头，则保留这种路径）
 		if (path.startsWith("\\\\")) {
 			pathToUse = "\\" + pathToUse;
 		}
 
-		String prefix = "";
+		String prefix = StrUtil.EMPTY;
 		int prefixIndex = pathToUse.indexOf(StrUtil.COLON);
 		if (prefixIndex > -1) {
 			// 可能Windows风格路径
@@ -3311,7 +3323,7 @@ public class FileUtil extends PathUtil {
 	private static File buildFile(File outFile, String fileName) {
 		// 替换Windows路径分隔符为Linux路径分隔符，便于统一处理
 		fileName = fileName.replace('\\', '/');
-		if (false == FileUtil.isWindows()
+		if (false == isWindows()
 				// 检查文件名中是否包含"/"，不考虑以"/"结尾的情况
 				&& fileName.lastIndexOf(CharUtil.SLASH, fileName.length() - 2) > 0) {
 			// 在Linux下多层目录创建存在问题，/会被当成文件名的一部分，此处做处理

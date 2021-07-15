@@ -1,13 +1,16 @@
 package cn.hutool.core.text;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.comparator.VersionComparator;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.lang.Filter;
+import cn.hutool.core.lang.Matcher;
 import cn.hutool.core.lang.func.Func1;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.CharsetUtil;
+import cn.hutool.core.util.DesensitizedUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
@@ -20,6 +23,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * {@link CharSequence} 相关工具类封装
@@ -614,6 +618,19 @@ public class CharSequenceUtil {
 	 * @return 除去指定字符后的的字符串，如果原字串为{@code null}，则返回{@code null}
 	 */
 	public static String trim(CharSequence str, int mode) {
+		return trim(str, mode, CharUtil::isBlankChar);
+	}
+
+	/**
+	 * 按照断言，除去字符串头尾部的断言为真的字符，如果字符串是{@code null}，依然返回{@code null}。
+	 *
+	 * @param str  要处理的字符串
+	 * @param mode {@code -1}表示trimStart，{@code 0}表示trim全部， {@code 1}表示trimEnd
+	 * @param predicate 断言是否过掉字符，返回{@code true}表述过滤掉，{@code false}表示不过滤
+	 * @return 除去指定字符后的的字符串，如果原字串为{@code null}，则返回{@code null}
+	 * @since 5.7.4
+	 */
+	public static String trim(CharSequence str, int mode, Predicate<Character> predicate) {
 		String result;
 		if (str == null) {
 			result = null;
@@ -622,12 +639,12 @@ public class CharSequenceUtil {
 			int start = 0;
 			int end = length;// 扫描字符串头部
 			if (mode <= 0) {
-				while ((start < end) && (CharUtil.isBlankChar(str.charAt(start)))) {
+				while ((start < end) && (predicate.test(str.charAt(start)))) {
 					start++;
 				}
 			}// 扫描字符串尾部
 			if (mode >= 0) {
-				while ((start < end) && (CharUtil.isBlankChar(str.charAt(end - 1)))) {
+				while ((start < end) && (predicate.test(str.charAt(end - 1)))) {
 					end--;
 				}
 			}
@@ -1600,18 +1617,10 @@ public class CharSequenceUtil {
 	 * @param str    字符串
 	 * @param prefix 前缀
 	 * @return 补充后的字符串
+	 * @see #prependIfMissing(CharSequence, CharSequence, CharSequence...)
 	 */
 	public static String addPrefixIfNot(CharSequence str, CharSequence prefix) {
-		if (isEmpty(str) || isEmpty(prefix)) {
-			return str(str);
-		}
-
-		final String str2 = str.toString();
-		final String prefix2 = prefix.toString();
-		if (false == str2.startsWith(prefix2)) {
-			return prefix2.concat(str2);
-		}
-		return str2;
+		return prependIfMissing(str, prefix, prefix);
 	}
 
 	/**
@@ -1620,32 +1629,13 @@ public class CharSequenceUtil {
 	 * @param str    字符串
 	 * @param suffix 后缀
 	 * @return 补充后的字符串
+	 * @see #appendIfMissing(CharSequence, CharSequence, CharSequence...)
 	 */
 	public static String addSuffixIfNot(CharSequence str, CharSequence suffix) {
-		if (isEmpty(str) || isEmpty(suffix)) {
-			return str(str);
-		}
-
-		final String str2 = str.toString();
-		final String suffix2 = suffix.toString();
-		if (false == str2.endsWith(suffix2)) {
-			return str2.concat(suffix2);
-		}
-		return str2;
+		return appendIfMissing(str, suffix, suffix);
 	}
 
 	// ------------------------------------------------------------------------ split
-
-	/**
-	 * 切分字符串
-	 *
-	 * @param str       被切分的字符串
-	 * @param separator 分隔符字符
-	 * @return 切分后的数组
-	 */
-	public static String[] splitToArray(CharSequence str, char separator) {
-		return splitToArray(str, separator, 0);
-	}
 
 	/**
 	 * 切分字符串为long数组
@@ -1709,6 +1699,33 @@ public class CharSequenceUtil {
 	}
 
 	/**
+	 * 切分字符串，如果分隔符不存在则返回原字符串
+	 *
+	 * @param str       被切分的字符串
+	 * @param separator 分隔符
+	 * @return 字符串
+	 * @since 5.6.7
+	 */
+	public static String[] splitToArray(CharSequence str, CharSequence separator) {
+		if (str == null) {
+			return new String[]{};
+		}
+
+		return StrSplitter.splitToArray(str.toString(), str(separator), 0, false, false);
+	}
+
+	/**
+	 * 切分字符串
+	 *
+	 * @param str       被切分的字符串
+	 * @param separator 分隔符字符
+	 * @return 切分后的数组
+	 */
+	public static String[] splitToArray(CharSequence str, char separator) {
+		return splitToArray(str, separator, 0);
+	}
+
+	/**
 	 * 切分字符串
 	 *
 	 * @param str       被切分的字符串
@@ -1720,7 +1737,7 @@ public class CharSequenceUtil {
 		if (null == str) {
 			return new String[]{};
 		}
-		return StrSpliter.splitToArray(str.toString(), separator, limit, false, false);
+		return StrSplitter.splitToArray(str.toString(), separator, limit, false, false);
 	}
 
 	/**
@@ -1814,7 +1831,33 @@ public class CharSequenceUtil {
 		if (null == str) {
 			return new ArrayList<>(0);
 		}
-		return StrSpliter.split(str.toString(), separator, limit, isTrim, ignoreEmpty);
+		return StrSplitter.split(str.toString(), separator, limit, isTrim, ignoreEmpty);
+	}
+
+	/**
+	 * 切分字符串，如果分隔符不存在则返回原字符串
+	 *
+	 * @param str       被切分的字符串
+	 * @param separator 分隔符
+	 * @return 字符串
+	 * @since 5.7.1
+	 */
+	public static List<String> split(CharSequence str, CharSequence separator) {
+		return split(str, separator, false, false);
+	}
+
+	/**
+	 * 切分字符串
+	 *
+	 * @param str         被切分的字符串
+	 * @param separator   分隔符字符
+	 * @param isTrim      是否去除切分字符串后每个元素两边的空格
+	 * @param ignoreEmpty 是否忽略空串
+	 * @return 切分后的集合
+	 * @since 5.6.7
+	 */
+	public static List<String> split(CharSequence str, CharSequence separator, boolean isTrim, boolean ignoreEmpty) {
+		return split(str, separator, 0, isTrim, ignoreEmpty);
 	}
 
 	/**
@@ -1833,23 +1876,7 @@ public class CharSequenceUtil {
 			return new ArrayList<>(0);
 		}
 		final String separatorStr = (null == separator) ? null : separator.toString();
-		return StrSpliter.split(str.toString(), separatorStr, limit, isTrim, ignoreEmpty);
-	}
-
-	/**
-	 * 切分字符串，如果分隔符不存在则返回原字符串
-	 *
-	 * @param str       被切分的字符串
-	 * @param separator 分隔符
-	 * @return 字符串
-	 */
-	public static String[] split(CharSequence str, CharSequence separator) {
-		if (str == null) {
-			return new String[]{};
-		}
-
-		final String separatorStr = (null == separator) ? null : separator.toString();
-		return StrSpliter.splitToArray(str.toString(), separatorStr, 0, false, false);
+		return StrSplitter.split(str.toString(), separatorStr, limit, isTrim, ignoreEmpty);
 	}
 
 	/**
@@ -1858,13 +1885,13 @@ public class CharSequenceUtil {
 	 * @param str 字符串
 	 * @param len 每一个小节的长度
 	 * @return 截取后的字符串数组
-	 * @see StrSpliter#splitByLength(String, int)
+	 * @see StrSplitter#splitByLength(String, int)
 	 */
 	public static String[] split(CharSequence str, int len) {
 		if (null == str) {
 			return new String[]{};
 		}
-		return StrSpliter.splitByLength(str.toString(), len);
+		return StrSplitter.splitByLength(str.toString(), len);
 	}
 
 	/**
@@ -2319,7 +2346,7 @@ public class CharSequenceUtil {
 		}
 
 		final List<String> result = new LinkedList<>();
-		final String[] split = split(str, prefix);
+		final String[] split = splitToArray(str, prefix);
 		if (prefix.equals(suffix)) {
 			// 前后缀字符相同，单独处理
 			for (int i = 1, length = split.length - 1; i < length; i += 2) {
@@ -2369,6 +2396,12 @@ public class CharSequenceUtil {
 
 	/**
 	 * 重复某个字符
+	 *
+	 * <pre>
+	 * StrUtil.repeat('e', 0)  = ""
+	 * StrUtil.repeat('e', 3)  = "eee"
+	 * StrUtil.repeat('e', -2) = ""
+	 * </pre>
 	 *
 	 * @param c     被重复的字符
 	 * @param count 重复的数目，如果小于等于0则返回""
@@ -2960,16 +2993,18 @@ public class CharSequenceUtil {
 
 	/**
 	 * 补充字符串以满足指定长度，如果提供的字符串大于指定长度，截断之
+	 * 同：leftPad (org.apache.commons.lang3.leftPad)
 	 *
 	 * <pre>
 	 * StrUtil.padPre(null, *, *);//null
 	 * StrUtil.padPre("1", 3, "ABC");//"AB1"
 	 * StrUtil.padPre("123", 2, "ABC");//"12"
+	 * StrUtil.padPre("1039", -1, "0");//"103"
 	 * </pre>
 	 *
-	 * @param str       字符串
-	 * @param length    长度
-	 * @param padStr    补充的字符
+	 * @param str    字符串
+	 * @param length 长度
+	 * @param padStr 补充的字符
 	 * @return 补充后的字符串
 	 */
 	public static String padPre(CharSequence str, int length, CharSequence padStr) {
@@ -2989,6 +3024,7 @@ public class CharSequenceUtil {
 
 	/**
 	 * 补充字符串以满足最小长度，如果提供的字符串大于指定长度，截断之
+	 * 同：leftPad (org.apache.commons.lang3.leftPad)
 	 *
 	 * <pre>
 	 * StrUtil.padPre(null, *, *);//null
@@ -2996,9 +3032,9 @@ public class CharSequenceUtil {
 	 * StrUtil.padPre("123", 2, '0');//"12"
 	 * </pre>
 	 *
-	 * @param str       字符串
-	 * @param length    长度
-	 * @param padChar   补充的字符
+	 * @param str     字符串
+	 * @param length  长度
+	 * @param padChar 补充的字符
 	 * @return 补充后的字符串
 	 */
 	public static String padPre(CharSequence str, int length, char padChar) {
@@ -3023,11 +3059,12 @@ public class CharSequenceUtil {
 	 * StrUtil.padAfter(null, *, *);//null
 	 * StrUtil.padAfter("1", 3, '0');//"100"
 	 * StrUtil.padAfter("123", 2, '0');//"23"
+	 * StrUtil.padAfter("123", -1, '0')//"" 空串
 	 * </pre>
 	 *
-	 * @param str       字符串，如果为{@code null}，直接返回null
-	 * @param length    长度
-	 * @param padChar   补充的字符
+	 * @param str     字符串，如果为{@code null}，直接返回null
+	 * @param length  长度
+	 * @param padChar 补充的字符
 	 * @return 补充后的字符串
 	 */
 	public static String padAfter(CharSequence str, int length, char padChar) {
@@ -3054,9 +3091,9 @@ public class CharSequenceUtil {
 	 * StrUtil.padAfter("123", 2, "ABC");//"23"
 	 * </pre>
 	 *
-	 * @param str       字符串，如果为{@code null}，直接返回null
-	 * @param length    长度
-	 * @param padStr    补充的字符
+	 * @param str    字符串，如果为{@code null}，直接返回null
+	 * @param length 长度
+	 * @param padStr 补充的字符
 	 * @return 补充后的字符串
 	 * @since 4.3.2
 	 */
@@ -3346,7 +3383,7 @@ public class CharSequenceUtil {
 	 * @return 如果已经结尾，返回原字符串，否则返回添加结尾的字符串
 	 * @since 3.0.7
 	 */
-	public static String appendIfMissing(final CharSequence str, final CharSequence suffix, final CharSequence... suffixes) {
+	public static String appendIfMissing(CharSequence str, CharSequence suffix, CharSequence... suffixes) {
 		return appendIfMissing(str, suffix, false, suffixes);
 	}
 
@@ -3360,27 +3397,27 @@ public class CharSequenceUtil {
 	 * @return 如果已经结尾，返回原字符串，否则返回添加结尾的字符串
 	 * @since 3.0.7
 	 */
-	public static String appendIfMissingIgnoreCase(final CharSequence str, final CharSequence suffix, final CharSequence... suffixes) {
+	public static String appendIfMissingIgnoreCase(CharSequence str, CharSequence suffix, CharSequence... suffixes) {
 		return appendIfMissing(str, suffix, true, suffixes);
 	}
 
 	/**
 	 * 如果给定字符串不是以给定的一个或多个字符串为结尾，则在尾部添加结尾字符串
 	 *
-	 * @param str        被检查的字符串
-	 * @param suffix     需要添加到结尾的字符串
-	 * @param ignoreCase 检查结尾时是否忽略大小写
-	 * @param suffixes   需要额外检查的结尾字符串，如果以这些中的一个为结尾，则不再添加
+	 * @param str          被检查的字符串
+	 * @param suffix       需要添加到结尾的字符串，不参与检查匹配
+	 * @param ignoreCase   检查结尾时是否忽略大小写
+	 * @param testSuffixes 需要额外检查的结尾字符串，如果以这些中的一个为结尾，则不再添加
 	 * @return 如果已经结尾，返回原字符串，否则返回添加结尾的字符串
 	 * @since 3.0.7
 	 */
-	public static String appendIfMissing(final CharSequence str, final CharSequence suffix, final boolean ignoreCase, final CharSequence... suffixes) {
+	public static String appendIfMissing(CharSequence str, CharSequence suffix, boolean ignoreCase, CharSequence... testSuffixes) {
 		if (str == null || isEmpty(suffix) || endWith(str, suffix, ignoreCase)) {
 			return str(str);
 		}
-		if (suffixes != null && suffixes.length > 0) {
-			for (final CharSequence s : suffixes) {
-				if (endWith(str, s, ignoreCase)) {
+		if (ArrayUtil.isNotEmpty(testSuffixes)) {
+			for (final CharSequence testSuffix : testSuffixes) {
+				if (endWith(str, testSuffix, ignoreCase)) {
 					return str.toString();
 				}
 			}
@@ -3398,7 +3435,7 @@ public class CharSequenceUtil {
 	 * @return 如果已经结尾，返回原字符串，否则返回添加结尾的字符串
 	 * @since 3.0.7
 	 */
-	public static String prependIfMissing(final CharSequence str, final CharSequence prefix, final CharSequence... prefixes) {
+	public static String prependIfMissing(CharSequence str, CharSequence prefix, CharSequence... prefixes) {
 		return prependIfMissing(str, prefix, false, prefixes);
 	}
 
@@ -3412,7 +3449,7 @@ public class CharSequenceUtil {
 	 * @return 如果已经结尾，返回原字符串，否则返回添加结尾的字符串
 	 * @since 3.0.7
 	 */
-	public static String prependIfMissingIgnoreCase(final CharSequence str, final CharSequence prefix, final CharSequence... prefixes) {
+	public static String prependIfMissingIgnoreCase(CharSequence str, CharSequence prefix, CharSequence... prefixes) {
 		return prependIfMissing(str, prefix, true, prefixes);
 	}
 
@@ -3426,7 +3463,7 @@ public class CharSequenceUtil {
 	 * @return 如果已经结尾，返回原字符串，否则返回添加结尾的字符串
 	 * @since 3.0.7
 	 */
-	public static String prependIfMissing(final CharSequence str, final CharSequence prefix, final boolean ignoreCase, final CharSequence... prefixes) {
+	public static String prependIfMissing(CharSequence str, CharSequence prefix, boolean ignoreCase, CharSequence... prefixes) {
 		if (str == null || isEmpty(prefix) || startWith(str, prefix, ignoreCase)) {
 			return str(str);
 		}
@@ -3596,6 +3633,17 @@ public class CharSequenceUtil {
 
 	/**
 	 * 替换指定字符串的指定区间内字符为"*"
+	 * 俗称：脱敏功能，后面其他功能，可以见：DesensitizedUtils(脱敏工具类)
+	 *
+	 * <pre>
+	 * StrUtil.hide(null,*,*)=null
+	 * StrUtil.hide("",0,*)=""
+	 * StrUtil.hide("jackduan@163.com",-1,4)   ****duan@163.com
+	 * StrUtil.hide("jackduan@163.com",2,3)    ja*kduan@163.com
+	 * StrUtil.hide("jackduan@163.com",3,2)    jackduan@163.com
+	 * StrUtil.hide("jackduan@163.com",16,16)  jackduan@163.com
+	 * StrUtil.hide("jackduan@163.com",16,17)  jackduan@163.com
+	 * </pre>
 	 *
 	 * @param str          字符串
 	 * @param startInclude 开始位置（包含）
@@ -3605,6 +3653,33 @@ public class CharSequenceUtil {
 	 */
 	public static String hide(CharSequence str, int startInclude, int endExclude) {
 		return replace(str, startInclude, endExclude, '*');
+	}
+
+	/**
+	 * 脱敏，使用默认的脱敏策略
+	 *
+	 * <pre>
+	 * StrUtil.desensitized("100", DesensitizedUtils.DesensitizedType.USER_ID)) =  "0"
+	 * StrUtil.desensitized("段正淳", DesensitizedUtils.DesensitizedType.CHINESE_NAME)) = "段**"
+	 * StrUtil.desensitized("51343620000320711X", DesensitizedUtils.DesensitizedType.ID_CARD)) = "5***************1X"
+	 * StrUtil.desensitized("09157518479", DesensitizedUtils.DesensitizedType.FIXED_PHONE)) = "0915*****79"
+	 * StrUtil.desensitized("18049531999", DesensitizedUtils.DesensitizedType.MOBILE_PHONE)) = "180****1999"
+	 * StrUtil.desensitized("北京市海淀区马连洼街道289号", DesensitizedUtils.DesensitizedType.ADDRESS)) = "北京市海淀区马********"
+	 * StrUtil.desensitized("duandazhi-jack@gmail.com.cn", DesensitizedUtils.DesensitizedType.EMAIL)) = "d*************@gmail.com.cn"
+	 * StrUtil.desensitized("1234567890", DesensitizedUtils.DesensitizedType.PASSWORD)) = "**********"
+	 * StrUtil.desensitized("苏D40000", DesensitizedUtils.DesensitizedType.CAR_LICENSE)) = "苏D4***0"
+	 * StrUtil.desensitized("11011111222233333256", DesensitizedType.BANK_CARD)) = "1101 **** **** **** 3256"
+	 * </pre>
+	 *
+	 * @param str              字符串
+	 * @param desensitizedType 脱敏类型;可以脱敏：用户id、中文名、身份证号、座机号、手机号、地址、电子邮件、密码
+	 * @return 脱敏之后的字符串
+	 * @author dazer and neusoft and qiaomu
+	 * @see DesensitizedUtil 如果需要自定义，脱敏规则，请使用该工具类；
+	 * @since 5.6.2
+	 */
+	public static String desensitized(CharSequence str, DesensitizedUtil.DesensitizedType desensitizedType) {
+		return DesensitizedUtil.desensitized(str, desensitizedType);
 	}
 
 	/**
@@ -3817,7 +3892,7 @@ public class CharSequenceUtil {
 	 * 过滤字符串
 	 *
 	 * @param str    字符串
-	 * @param filter 过滤器
+	 * @param filter 过滤器，{@link Filter#accept(Object)}返回为{@code true}的保留字符
 	 * @return 过滤后的字符串
 	 * @since 5.4.0
 	 */
@@ -4195,6 +4270,20 @@ public class CharSequenceUtil {
 	}
 
 	/**
+	 * 以 conjunction 为分隔符将多个对象转换为字符串
+	 *
+	 * @param <T> 元素类型
+	 * @param conjunction 分隔符
+	 * @param iterable    集合
+	 * @return 连接后的字符串
+	 * @see CollUtil#join(Iterable, CharSequence)
+	 * @since 5.6.6
+	 */
+	public static <T> String join(CharSequence conjunction, Iterable<T> iterable) {
+		return CollUtil.join(iterable, conjunction);
+	}
+
+	/**
 	 * 字符串的每一个字符是否都与定义的匹配器匹配
 	 *
 	 * @param value   字符串
@@ -4202,17 +4291,27 @@ public class CharSequenceUtil {
 	 * @return 是否全部匹配
 	 * @since 3.2.3
 	 */
-	public static boolean isAllCharMatch(CharSequence value, cn.hutool.core.lang.Matcher<Character> matcher) {
+	public static boolean isAllCharMatch(CharSequence value, Matcher<Character> matcher) {
 		if (StrUtil.isBlank(value)) {
 			return false;
 		}
-		int len = value.length();
-		for (int i = 0; i < len; i++) {
+		for (int i = value.length(); --i >= 0;) {
 			if (false == matcher.match(value.charAt(i))) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * 检查字符串是否都为数字组成
+	 *
+	 * @param str 字符串
+	 * @return 是否都为数字组成
+	 * @since 5.7.3
+	 */
+	public static boolean isNumeric(CharSequence str) {
+		return isAllCharMatch(str, Character::isDigit);
 	}
 
 	/**
@@ -4253,5 +4352,16 @@ public class CharSequenceUtil {
 			return str(str);
 		}
 		return strBuilder.toString();
+	}
+
+	/**
+	 * 检查给定字符串的所有字符是否都一样
+	 *
+	 * @param str 字符出啊
+	 * @return 给定字符串的所有字符是否都一样
+	 * @since 5.7.3
+	 */
+	public static boolean isCharEquals(String str) {
+		return isBlank(str.replace(str.charAt(0), CharUtil.SPACE));
 	}
 }
